@@ -67,7 +67,7 @@ docs/
 
 The planned implementation sequence for this repository is:
 
-1. 1-bit branch predictor
+1. 1-bit branch predictor *(RTL & Testbench implemented; simulation pending)*
 2. 2-bit branch predictor
 3. Direct-mapped cache
 4. Workload generator
@@ -76,7 +76,7 @@ The planned implementation sequence for this repository is:
 7. Performance analyzer
 8. Final documentation
 
-*(Note: Implementation has not yet started. Components will be developed following this roadmap.)*
+*(Note: Phase 1 RTL model and SystemVerilog testbench created. Simulation execution pending per execution rules.)*
 
 ## Scope / Limitations
 
