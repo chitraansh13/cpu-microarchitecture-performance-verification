@@ -1,0 +1,64 @@
+============================================================
+CPU MICROARCHITECTURE PERFORMANCE REPORT
+============================================================
+
+Regression Status: PASS
+
+Branch Predictor Results
+
+Workload           1-bit      2-bit     
+--------------------------------------
+Mostly Taken       79.80%     88.50%    
+Mostly Not Taken   83.70%     90.30%    
+Alternating        0.10%      50.00%    
+Loop               66.80%     83.40%    
+Random             49.20%     49.70%    
+
+Cache Results
+
+Workload           Hit Rate  
+----------------------------
+High Locality      99.60%    
+Sequential         0.00%     
+Random             0.10%     
+Conflict           0.00%     
+
+Selected Performance Scenario
+
+Predictor:                  2bit (branch_predictor_2bit)
+Branch Workload:            loop
+Cache Workload:             high_locality
+
+Performance Model Parameters
+
+Instructions:               10000
+Base CPI:                   1.00
+Branch Mispredict Penalty:  3 cycles
+Cache Miss Penalty:         10 cycles
+
+Observed Regression Counts
+
+Branch Events:              1000
+Branch Mispredictions:      166
+Memory Accesses:            1000
+Cache Misses:               4
+
+Estimated Performance
+
+Base Instruction Cycles:    10000.0
+Extra Branch Cycles:        498.0
+Extra Cache Cycles:         40.0
+Estimated Total Cycles:     10538.0
+Estimated CPI:              1.0538
+
+Key Observations
+
+- 2-bit predictor improves loop-workload accuracy by +16.60 percentage points over 1-bit.
+- Alternating branch behavior is especially poor for the 1-bit predictor (0.10% accuracy).
+- High Locality workload produced the highest cache hit rate (99.60%).
+- Sequential workload produced the lowest cache hit rate (0.00%).
+
+Important:
+Estimated CPI is a simplified analytical metric, not measured real CPU CPI.
+Branch and cache traces are independent synthetic workloads.
+============================================================

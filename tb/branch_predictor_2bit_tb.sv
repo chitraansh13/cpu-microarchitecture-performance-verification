@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 
 // ============================================================================
-// Module: branch_predictor_1bit_tb
-// Description: Testbench for 1-bit dynamic branch predictor.
+// Module: branch_predictor_2bit_tb
+// Description: Testbench for 2-bit saturating counter branch predictor.
 // Supports both default trace mode and file-driven regression mode (+WORKLOAD=<path>).
 // Outputs machine-readable lines formatted as: REG_BRANCH,<branch_num>,<pred>,<actual>
 // ============================================================================
 
-module branch_predictor_1bit_tb;
+module branch_predictor_2bit_tb;
 
     // Testbench signals
     logic clk;
@@ -16,7 +16,7 @@ module branch_predictor_1bit_tb;
     logic prediction;
 
     // Instantiate Device Under Test (DUT)
-    branch_predictor_1bit dut (
+    branch_predictor_2bit dut (
         .clk          (clk),
         .reset        (reset),
         .actual_taken (actual_taken),
@@ -67,13 +67,13 @@ module branch_predictor_1bit_tb;
         #1;
         reset = 1'b0;
 
-        // Verify initialization to Taken (1'b1) after reset
-        if (prediction !== 1'b1) begin
-            $display("[ERROR] Predictor did not initialize to Taken (T) on reset!");
+        // Verify initialization to Strongly Taken (2'b11) after reset
+        if (dut.state !== 2'b11) begin
+            $display("[ERROR] Predictor did not initialize to Strongly Taken (11) on reset!");
         end else begin
-            $display("[INIT] Reset verified: Predictor state initialized to Taken (T).");
+            $display("[INIT] Reset verified: Predictor state initialized to Strongly Taken (11).");
         end
-        $display("----------------------------------------------------------------");
+        $display("-------------------------------------------------------------------------");
 
         // Check for +WORKLOAD=<path> plusarg
         if ($value$plusargs("WORKLOAD=%s", workload_filename)) begin
@@ -94,12 +94,12 @@ module branch_predictor_1bit_tb;
 
                 if (prediction == actual_taken) begin
                     correct_predictions++;
-                    $display("Branch %4d | Prediction: %s | Actual: %s | Result: CORRECT",
-                             total_branches, (prediction ? "T" : "N"), (actual_taken ? "T" : "N"));
+                    $display("Branch %4d | State: %b | Prediction: %s | Actual: %s | Result: CORRECT",
+                             total_branches, dut.state, (prediction ? "T" : "N"), (actual_taken ? "T" : "N"));
                 end else begin
                     incorrect_predictions++;
-                    $display("Branch %4d | Prediction: %s | Actual: %s | Result: INCORRECT",
-                             total_branches, (prediction ? "T" : "N"), (actual_taken ? "T" : "N"));
+                    $display("Branch %4d | State: %b | Prediction: %s | Actual: %s | Result: INCORRECT",
+                             total_branches, dut.state, (prediction ? "T" : "N"), (actual_taken ? "T" : "N"));
                 end
 
                 @(posedge clk);
@@ -118,12 +118,12 @@ module branch_predictor_1bit_tb;
 
                 if (prediction == workload[i]) begin
                     correct_predictions++;
-                    $display("Branch %2d | Prediction: %s | Actual: %s | Result: CORRECT",
-                             i + 1, (prediction ? "T" : "N"), (workload[i] ? "T" : "N"));
+                    $display("Branch %2d | State: %b | Prediction: %s | Actual: %s | Result: CORRECT",
+                             i + 1, dut.state, (prediction ? "T" : "N"), (workload[i] ? "T" : "N"));
                 end else begin
                     incorrect_predictions++;
-                    $display("Branch %2d | Prediction: %s | Actual: %s | Result: INCORRECT",
-                             i + 1, (prediction ? "T" : "N"), (workload[i] ? "T" : "N"));
+                    $display("Branch %2d | State: %b | Prediction: %s | Actual: %s | Result: INCORRECT",
+                             i + 1, dut.state, (prediction ? "T" : "N"), (workload[i] ? "T" : "N"));
                 end
 
                 @(posedge clk);
@@ -136,12 +136,12 @@ module branch_predictor_1bit_tb;
         end
 
         // Summary report
-        $display("----------------------------------------------------------------");
+        $display("-------------------------------------------------------------------------");
         $display("Total Branches        = %0d", total_branches);
         $display("Correct Predictions   = %0d", correct_predictions);
         $display("Incorrect Predictions = %0d", incorrect_predictions);
         $display("Prediction Accuracy   = %0.2f%%", accuracy);
-        $display("----------------------------------------------------------------");
+        $display("-------------------------------------------------------------------------");
 
         $finish;
     end

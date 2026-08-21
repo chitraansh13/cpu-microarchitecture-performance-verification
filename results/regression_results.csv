@@ -1,0 +1,15 @@
+component,workload,status,total_events,correct_or_hits,incorrect_or_misses,metric_name,metric_value
+branch_predictor_1bit,mostly_taken,PASS,1000,798,202,accuracy,79.80%
+branch_predictor_1bit,mostly_not_taken,PASS,1000,837,163,accuracy,83.70%
+branch_predictor_1bit,alternating,PASS,1000,1,999,accuracy,0.10%
+branch_predictor_1bit,loop,PASS,1000,668,332,accuracy,66.80%
+branch_predictor_1bit,random,PASS,1000,492,508,accuracy,49.20%
+branch_predictor_2bit,mostly_taken,PASS,1000,885,115,accuracy,88.50%
+branch_predictor_2bit,mostly_not_taken,PASS,1000,903,97,accuracy,90.30%
+branch_predictor_2bit,alternating,PASS,1000,500,500,accuracy,50.00%
+branch_predictor_2bit,loop,PASS,1000,834,166,accuracy,83.40%
+branch_predictor_2bit,random,PASS,1000,497,503,accuracy,49.70%
+direct_mapped_cache,high_locality,PASS,1000,996,4,hit_rate,99.60%
+direct_mapped_cache,sequential,PASS,1000,0,1000,hit_rate,0.00%
+direct_mapped_cache,random,PASS,1000,1,999,hit_rate,0.10%
+direct_mapped_cache,conflict,PASS,1000,0,1000,hit_rate,0.00%

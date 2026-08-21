@@ -12,6 +12,7 @@ env.bak/
 venv.bak/
 
 # Icarus Verilog simulation binaries and outputs
+build/
 *.out
 *.vvp
 
