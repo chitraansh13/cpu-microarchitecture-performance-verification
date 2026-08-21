@@ -367,6 +367,125 @@ def save_regression_csv(results: List[Dict[str, Any]]) -> None:
 # Main Regression Orchestration
 # ============================================================================
 
+def run_full_regression(
+    component: str = "all",
+    verbose: bool = True,
+    save_csv: bool = True
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """
+    Executes the full RTL vs Python regression test suite.
+    
+    Returns:
+        Tuple[List[Dict[str, Any]], bool]: (list of case result dicts, overall_pass_status)
+    """
+    check_toolchain()
+
+    if verbose:
+        print("============================================================")
+        print("CPU MICROARCHITECTURE REGRESSION")
+        print("============================================================")
+
+    all_results = []
+    compilation_failures = 0
+
+    # 1. 1-Bit Branch Predictor Suite
+    if component in ("all", "1bit"):
+        if verbose:
+            print("\n1-BIT BRANCH PREDICTOR")
+        ok, exe, err = compile_simulation(
+            "branch_1bit_sim",
+            "rtl/branch_predictor_1bit.sv",
+            "tb/branch_predictor_1bit_tb.sv"
+        )
+        if not ok:
+            if verbose:
+                print(f"  [COMPILATION ERROR] {err}")
+            compilation_failures += len(BRANCH_WORKLOADS)
+        else:
+            for wl in BRANCH_WORKLOADS:
+                res = run_branch_regression_case(
+                    "branch_predictor_1bit", exe, wl, OneBitBranchPredictor
+                )
+                all_results.append(res)
+                if verbose:
+                    metric_str = f"{res['metric_name']}={res['metric_value']:.2f}%"
+                    print(f"  {wl:<18} {res['status']:<6} {metric_str}")
+                    if res["status"] == "FAIL" and res["error"]:
+                        print(f"    -> {res['error']}")
+
+    # 2. 2-Bit Branch Predictor Suite
+    if component in ("all", "2bit"):
+        if verbose:
+            print("\n2-BIT BRANCH PREDICTOR")
+        ok, exe, err = compile_simulation(
+            "branch_2bit_sim",
+            "rtl/branch_predictor_2bit.sv",
+            "tb/branch_predictor_2bit_tb.sv"
+        )
+        if not ok:
+            if verbose:
+                print(f"  [COMPILATION ERROR] {err}")
+            compilation_failures += len(BRANCH_WORKLOADS)
+        else:
+            for wl in BRANCH_WORKLOADS:
+                res = run_branch_regression_case(
+                    "branch_predictor_2bit", exe, wl, TwoBitBranchPredictor
+                )
+                all_results.append(res)
+                if verbose:
+                    metric_str = f"{res['metric_name']}={res['metric_value']:.2f}%"
+                    print(f"  {wl:<18} {res['status']:<6} {metric_str}")
+                    if res["status"] == "FAIL" and res["error"]:
+                        print(f"    -> {res['error']}")
+
+    # 3. Direct-Mapped Cache Suite
+    if component in ("all", "cache"):
+        if verbose:
+            print("\nDIRECT-MAPPED CACHE")
+        ok, exe, err = compile_simulation(
+            "cache_sim",
+            "rtl/direct_mapped_cache.sv",
+            "tb/cache_tb.sv"
+        )
+        if not ok:
+            if verbose:
+                print(f"  [COMPILATION ERROR] {err}")
+            compilation_failures += len(MEMORY_WORKLOADS)
+        else:
+            for wl in MEMORY_WORKLOADS:
+                res = run_cache_regression_case(
+                    "direct_mapped_cache", exe, wl
+                )
+                all_results.append(res)
+                if verbose:
+                    metric_str = f"{res['metric_name']}={res['metric_value']:.2f}%"
+                    print(f"  {wl:<18} {res['status']:<6} {metric_str}")
+                    if res["status"] == "FAIL" and res["error"]:
+                        print(f"    -> {res['error']}")
+
+    # Summary calculation
+    total_cases = len(all_results) + compilation_failures
+    passed_cases = sum(1 for r in all_results if r["status"] == "PASS")
+    failed_cases = total_cases - passed_cases
+    overall_status = "PASS" if (failed_cases == 0 and total_cases > 0) else "FAIL"
+
+    if verbose:
+        print("\n------------------------------------------------------------")
+        print(f"Regression Cases: {total_cases}")
+        print(f"Passed:           {passed_cases}")
+        print(f"Failed:            {failed_cases}")
+        print(f"Overall Status:   {overall_status}")
+        print("------------------------------------------------------------")
+
+    # Save CSV Report
+    if all_results and save_csv:
+        save_regression_csv(all_results)
+        if verbose:
+            print(f"\nSaved regression CSV: results/regression_results.csv")
+
+    return all_results, (overall_status == "PASS")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Automated RTL vs Python regression test suite."
@@ -379,100 +498,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    check_toolchain()
-
-    print("============================================================")
-    print("CPU MICROARCHITECTURE REGRESSION")
-    print("============================================================")
-
-    all_results = []
-    compilation_failures = 0
-
-    # 1. 1-Bit Branch Predictor Suite
-    if args.component in ("all", "1bit"):
-        print("\n1-BIT BRANCH PREDICTOR")
-        ok, exe, err = compile_simulation(
-            "branch_1bit_sim",
-            "rtl/branch_predictor_1bit.sv",
-            "tb/branch_predictor_1bit_tb.sv"
-        )
-        if not ok:
-            print(f"  [COMPILATION ERROR] {err}")
-            compilation_failures += len(BRANCH_WORKLOADS)
-        else:
-            for wl in BRANCH_WORKLOADS:
-                res = run_branch_regression_case(
-                    "branch_predictor_1bit", exe, wl, OneBitBranchPredictor
-                )
-                all_results.append(res)
-                metric_str = f"{res['metric_name']}={res['metric_value']:.2f}%"
-                print(f"  {wl:<18} {res['status']:<6} {metric_str}")
-                if res["status"] == "FAIL" and res["error"]:
-                    print(f"    -> {res['error']}")
-
-    # 2. 2-Bit Branch Predictor Suite
-    if args.component in ("all", "2bit"):
-        print("\n2-BIT BRANCH PREDICTOR")
-        ok, exe, err = compile_simulation(
-            "branch_2bit_sim",
-            "rtl/branch_predictor_2bit.sv",
-            "tb/branch_predictor_2bit_tb.sv"
-        )
-        if not ok:
-            print(f"  [COMPILATION ERROR] {err}")
-            compilation_failures += len(BRANCH_WORKLOADS)
-        else:
-            for wl in BRANCH_WORKLOADS:
-                res = run_branch_regression_case(
-                    "branch_predictor_2bit", exe, wl, TwoBitBranchPredictor
-                )
-                all_results.append(res)
-                metric_str = f"{res['metric_name']}={res['metric_value']:.2f}%"
-                print(f"  {wl:<18} {res['status']:<6} {metric_str}")
-                if res["status"] == "FAIL" and res["error"]:
-                    print(f"    -> {res['error']}")
-
-    # 3. Direct-Mapped Cache Suite
-    if args.component in ("all", "cache"):
-        print("\nDIRECT-MAPPED CACHE")
-        ok, exe, err = compile_simulation(
-            "cache_sim",
-            "rtl/direct_mapped_cache.sv",
-            "tb/cache_tb.sv"
-        )
-        if not ok:
-            print(f"  [COMPILATION ERROR] {err}")
-            compilation_failures += len(MEMORY_WORKLOADS)
-        else:
-            for wl in MEMORY_WORKLOADS:
-                res = run_cache_regression_case(
-                    "direct_mapped_cache", exe, wl
-                )
-                all_results.append(res)
-                metric_str = f"{res['metric_name']}={res['metric_value']:.2f}%"
-                print(f"  {wl:<18} {res['status']:<6} {metric_str}")
-                if res["status"] == "FAIL" and res["error"]:
-                    print(f"    -> {res['error']}")
-
-    # Summary calculation
-    total_cases = len(all_results) + compilation_failures
-    passed_cases = sum(1 for r in all_results if r["status"] == "PASS")
-    failed_cases = total_cases - passed_cases
-    overall_status = "PASS" if (failed_cases == 0 and total_cases > 0) else "FAIL"
-
-    print("\n------------------------------------------------------------")
-    print(f"Regression Cases: {total_cases}")
-    print(f"Passed:           {passed_cases}")
-    print(f"Failed:            {failed_cases}")
-    print(f"Overall Status:   {overall_status}")
-    print("------------------------------------------------------------")
-
-    # Save CSV Report
-    if all_results:
-        save_regression_csv(all_results)
-        print(f"\nSaved regression CSV: results/regression_results.csv")
-
-    sys.exit(0 if overall_status == "PASS" else 1)
+    results, overall_pass = run_full_regression(component=args.component, verbose=True, save_csv=True)
+    sys.exit(0 if overall_pass else 1)
 
 
 if __name__ == "__main__":

@@ -62,9 +62,22 @@ Trace length: 1,000 memory accesses per workload (4 cache lines, 4-byte block si
 
 ---
 
-## 5. Key Technical Findings
+## 5. Multi-Seed Stress Regression Summary
+
+- **Seeds Tested**: 20 (Seeds 1 to 20)
+- **Regression Cases / Seed**: 14
+- **Total Regression Cases**: 280
+- **Passed**: 280
+- **Failed**: 0
+- **Verified RTL Transaction Events**: 280,000
+- **Overall Status**: **PASS**
+
+---
+
+## 6. Key Technical Findings
 
 1. **Hysteresis Benefits**: The 2-bit predictor achieves an 83.40% accuracy on loop patterns (vs 66.80% for 1-bit), demonstrating that counter hysteresis effectively eliminates re-entry mispredictions following loop exits.
 2. **Pathological Predictor Patterns**: Alternating branch streams cause 1-bit state flipping on every branch (0.10% accuracy), whereas 2-bit hysteresis stabilizes prediction at chance level (50.00%).
 3. **Working Set Fit**: Small working sets fitting within the 4-line cache achieve a 99.60% hit rate, bounded only by initial cold misses.
 4. **Index Aliasing Thrashing**: Address streams differing by 16-byte strides (`0, 16, 32, 48`) alias to `Index 0`, demonstrating 100% conflict miss thrashing in direct-mapped caches.
+5. **Multi-Seed Equivalence**: Verified 280,000 transaction events across 20 randomized seeds with 100% RTL vs Python golden model equivalence.

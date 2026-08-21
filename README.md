@@ -212,12 +212,17 @@ cpu-microarchitecture-performance-verification/
 │   ├── workload_generator.py               # Synthetic workload generator
 │   ├── reference_models.py                 # Software golden reference models
 │   ├── regression.py                       # Automated RTL vs Python regression runner
+│   ├── stress_regression.py                # Multi-seed randomized stress regression runner
+│   ├── edge_case_regression.py             # Directed edge-case verification runner
 │   └── performance_analyzer.py             # Performance analyzer & Estimated CPI calculator
-├── workloads/                              # Generated synthetic workload traces
+├── workloads/                              # Synthetic workload traces
 │   ├── branches/                           # Branch trace files (*.txt)
-│   └── memory/                             # Memory address trace files (*.txt)
+│   ├── memory/                             # Memory address trace files (*.txt)
+│   └── edge_cases/                         # Directed edge-case trace files
 ├── results/                                # Output reports and regression data
 │   ├── regression_results.csv              # Machine-readable regression test results
+│   ├── stress_regression_results.csv       # Multi-seed stress regression results
+│   ├── edge_case_results.csv               # Directed edge-case regression results
 │   └── performance_report.txt              # Formatted analytical performance report
 ├── docs/                                   # Project documentation & interview guides
 │   ├── project_learning_log.md             # Comprehensive development & study log
@@ -245,12 +250,22 @@ python scripts/workload_generator.py
 python scripts/regression.py
 ```
 
-### 3. Generate Analytical Performance Report
+### 3. Run Multi-Seed Stress Regression
+```bash
+python scripts/stress_regression.py --start-seed 1 --num-seeds 20
+```
+
+### 4. Run Directed Edge-Case Regression
+```bash
+python scripts/edge_case_regression.py
+```
+
+### 5. Generate Analytical Performance Report
 ```bash
 python scripts/performance_analyzer.py
 ```
 
-### 4. Interactive Manual Testbench Runs (Optional)
+### 6. Interactive Manual Testbench Runs (Optional)
 ```bash
 # Compile and run 1-bit predictor manual test
 iverilog -g2012 -o build/branch_1bit_sim rtl/branch_predictor_1bit.sv tb/branch_predictor_1bit_tb.sv
@@ -287,6 +302,7 @@ Phase 5 — Python reference models      PASS
 Phase 6 — Regression runner            PASS
 Phase 7 — Performance analyzer         PASS
 Phase 8 — Final documentation/polish   COMPLETE
+Phase 9A — Multi-seed stress runner    PASS
 ```
 
 ## Resume Description

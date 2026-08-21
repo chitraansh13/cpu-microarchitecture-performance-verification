@@ -249,7 +249,8 @@ def generate_all_workloads(
     branch_count: int,
     memory_count: int,
     seed: int,
-    output_dir: Path
+    output_dir: Path,
+    verbose: bool = True
 ) -> None:
     """Generates all default branch and memory workload files."""
     rng = random.Random(seed)
@@ -281,15 +282,16 @@ def generate_all_workloads(
         save_workload(memory_dir / filename, workload)
 
     # Console Summary
-    print("Generated branch workloads:")
-    for filename, workload in branch_files.items():
-        print(f"  {filename:<22} {len(workload)} entries")
+    if verbose:
+        print("Generated branch workloads:")
+        for filename, workload in branch_files.items():
+            print(f"  {filename:<22} {len(workload)} entries")
 
-    print("\nGenerated memory workloads:")
-    for filename, workload in memory_files.items():
-        print(f"  {filename:<22} {len(workload)} entries")
+        print("\nGenerated memory workloads:")
+        for filename, workload in memory_files.items():
+            print(f"  {filename:<22} {len(workload)} entries")
 
-    print(f"\nSeed: {seed}")
+        print(f"\nSeed: {seed}")
 
 
 def main() -> None:
