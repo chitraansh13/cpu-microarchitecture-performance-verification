@@ -9,7 +9,7 @@ import { PredictorStateMachine } from './components/PredictorStateMachine';
 import { CacheVisualization } from './components/CacheVisualization';
 import { QuickComposer } from './components/QuickComposer';
 import {
-  ArrowRight, Activity, Database, ShieldCheck, Play, AlertTriangle, Cpu, Zap, Layers,
+  ArrowRight, Activity, Database, ShieldCheck, Play, AlertTriangle, Cpu, Zap,
   Terminal, Server, Code, FileCode, CheckSquare, RefreshCw, CpuIcon, Sparkles, CheckCircle2,
   Info
 } from 'lucide-react';

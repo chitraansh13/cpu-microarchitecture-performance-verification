@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, FileText, Activity, Sliders, Sparkles } from 'lucide-react';
+import { Play, FileText, Activity, Sparkles } from 'lucide-react';
 
 interface QuickComposerProps {
   value: string;
