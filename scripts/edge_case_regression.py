@@ -298,6 +298,27 @@ def save_edge_case_csv(results: List[Dict[str, Any]]) -> None:
             })
 
 
+def run_directed_edge_cases(
+    exe_1bit: Path,
+    exe_2bit: Path,
+    exe_cache: Path,
+    branch_paths: Dict[str, Path],
+    memory_paths: Dict[str, Path]
+) -> List[Dict[str, Any]]:
+    """Runs all 31 directed branch and cache edge-cases against RTL."""
+    results = []
+    for case_name, filepath in branch_paths.items():
+        res = run_directed_branch_case("branch_predictor_1bit", exe_1bit, case_name, filepath, OneBitBranchPredictor)
+        results.append(res)
+    for case_name, filepath in branch_paths.items():
+        res = run_directed_branch_case("branch_predictor_2bit", exe_2bit, case_name, filepath, TwoBitBranchPredictor)
+        results.append(res)
+    for case_name, filepath in memory_paths.items():
+        res = run_directed_cache_case("direct_mapped_cache", exe_cache, case_name, filepath)
+        results.append(res)
+    return results
+
+
 # ============================================================================
 # Main Entry Point
 # ============================================================================

@@ -523,9 +523,25 @@ Phase 6 — Automated regression runner  PASS
 Phase 7 — Performance analyzer         PASS
 Phase 8 — Final documentation/polish   COMPLETE
 Phase 9A — Multi-seed stress runner    PASS
+Phase 9B — Directed edge-case runner   PASS
+Phase 9C — Fault-injection validation  PASS
 
-Overall Regression Status: 14 / 14 PASS (Single Seed) | 280 / 280 PASS (Multi-Seed Stress)
+Overall Regression Status: 14/14 PASS (Baseline) | 280/280 PASS (Stress) | 31/31 PASS (Edge Cases)
 ```
+
+---
+
+## Overall Verification Summary
+
+| Campaign | Scope / Volume | Results | Total Verified RTL Events |
+| :--- | :--- | :--- | ---: |
+| **Baseline Regression** | 14 test cases (Seed 42) | **14 / 14 PASS** | 14,000 |
+| **Multi-Seed Stress Regression** | 20 seeds $\times$ 14 cases | **280 / 280 PASS** | 280,000 |
+| **Directed Edge-Case Verification** | 31 directed cases | **31 / 31 PASS** | 1,949 |
+| **Fault Injection Validation** | 5 2-bit predictor cases | **5 / 5 FAIL (Correctly Detected)** | N/A (Faulty) |
+| **Post-Restore Baseline** | 14 test cases (Restored RTL) | **14 / 14 PASS** | 14,000 |
+
+*(Note: Each verification campaign represents a distinct testing scope and methodology; metrics are reported independently to reflect true verification depth.)*
 
 ---
 
@@ -588,13 +604,23 @@ During initial manual invocation, a CLI argument attribute error was encountered
 
 ## Phase 9B — Directed Edge-Case Verification
 
-### Status: IMPLEMENTED — MANUAL VERIFICATION PENDING
+### Status: PASS
 
 ### What We Built
 
 - **Directed Edge-Case Runner**: [`scripts/edge_case_regression.py`](file:///e:/cpu-microarchitecture-performance-verification/scripts/edge_case_regression.py)
 - **Workload Directory**: Programmatically generated trace files under [`workloads/edge_cases/`](file:///e:/cpu-microarchitecture-performance-verification/workloads/edge_cases)
 - **Output Artifact**: CSV results logger ([`results/edge_case_results.csv`](file:///e:/cpu-microarchitecture-performance-verification/results/edge_case_results.csv))
+
+### Verified Directed Edge-Case Metrics
+
+```text
+Directed Cases       = 31 (22 Branch Runs, 9 Cache Runs)
+Passed               = 31
+Failed               = 0
+Verified RTL Events  = 1,949
+Overall Status       = PASS
+```
 
 ### Why Directed Edge Cases Complement Randomized Stress Testing
 
@@ -629,17 +655,127 @@ While multi-seed stress testing provides broad randomized coverage, directed ver
 8. `block_boundary`: Transitioning across block boundaries (`0, 1, 2, 3` to `4, 5, 6, 7`).
 9. `capacity_pressure`: 8 unique block addresses (`0, 4, 8, 12, 16, 20, 24, 28`) exceeding 4-line cache capacity.
 
-### Transaction-Level Verification
+### Observed Microarchitectural Metrics
 
-Every directed case executes event-by-event equivalence checking against Python golden models:
-- Predictors: Compares `branch_num`, `actual`, and `prediction` for every branch.
-- Cache: Compares `access_num`, `address`, and `hit/miss` status for every access.
-- Result logging writes `results/edge_case_results.csv` and returns exit code `0` (all PASS) or `1` (any FAIL).
+```text
+1-bit strict alternating       = 1.00%
+2-bit strict alternating       = 50.00%
+
+1-bit repeated loop exit       = 68.00%
+2-bit repeated loop exit       = 84.00%
+
+same address cache hit rate    = 99.00%
+same block offsets hit rate    = 98.96%
+conflict thrashing hit rate    = 0.00%
+capacity pressure hit rate     = 0.00%
+```
+
+*Verification Principle: `PASS` status refers strictly to transaction-by-transaction agreement between RTL outputs and Python golden reference models. Low prediction accuracy or low cache hit rates reflect true microarchitectural behavior under pathological workloads, NOT verification test failures.*
 
 ### Interview Explanation
 
 > **Interview Question**: *"How did you verify your hardware components against edge cases and boundary conditions?"*
 >
-> **Answer**: *"I built a directed edge-case verification runner (`scripts/edge_case_regression.py`) that programmatically generated 11 directed branch traces and 9 directed cache traces targeting specific boundary behaviors—such as unaligned byte offset accesses within the same cache block (`0, 1, 2, 3`), 2-bit counter saturation boundaries (`11 -> 00 -> 11`), single-element traces, and maximum 16-bit address limits (`65535`). Each directed case was compared transaction-by-transaction against software golden models to confirm zero-defect behavioral equivalence."*
+> **Answer**: *"I built a directed edge-case verification runner (`scripts/edge_case_regression.py`) that programmatically generated 11 directed branch traces and 9 directed cache traces targeting specific boundary behaviors—such as unaligned byte offset accesses within the same cache block (`0, 1, 2, 3`), 2-bit counter saturation boundaries (`11 -> 00 -> 11`), single-element traces, and maximum 16-bit address limits (`65535`). Each directed case was compared transaction-by-transaction against software golden models across 31 total test runs (1,949 verified events), confirming zero-defect behavioral equivalence."*
 
-*(Note: Runner implemented; execution pending manual invocation.)*
+---
+
+## Phase 9C — Fault-Injection Validation
+
+### Status: PASS
+
+### Experiment Rationale & Setup
+
+A verification framework must prove not only that it accepts correct RTL, but also that it reliably detects and rejects defective RTL. To validate framework sensitivity, a temporary deliberate fault was introduced in [`rtl/branch_predictor_2bit.sv`](file:///e:/cpu-microarchitecture-performance-verification/rtl/branch_predictor_2bit.sv).
+
+#### RTL Fault Injected
+- **Correct RTL**: `assign prediction = state[1];` (MSB of 2-bit counter)
+- **Temporary Faulty RTL**: `assign prediction = state[0];` (LSB of 2-bit counter)
+
+#### Why This Fault Is Meaningful
+- The prediction signal must be driven by the MSB (`state[1]`) to predict `1` Taken for states `10`/`11` and `0` Not Taken for states `00`/`01`.
+- Connecting `prediction` to `state[0]` produces incorrect predictions in states `01` (predicts `1` instead of `0`) and `10` (predicts `0` instead of `1`).
+- Python golden reference models and regression checking logic were left completely unchanged.
+
+### Experimental Fault-Injection Results
+
+```text
+2-bit Regression Cases = 5
+Passed                  = 0
+Failed                  = 5
+Overall Status          = FAIL
+```
+
+*Note: This FAIL was the expected successful outcome of the fault-injection experiment.*
+
+#### Event Mismatch Detection
+The regression runner detected event-level mismatches on the very first faulty prediction and halted full output flooding, outputting exact failure trace lines for all 5 2-bit workloads:
+- `mostly_taken` (FAIL - First mismatch at branch 1: RTL prediction 1, Python expected 1 / branch 2: RTL prediction 0, Python expected 1)
+- `mostly_not_taken` (FAIL - First mismatch at branch 2)
+- `alternating` (FAIL - First mismatch at branch 2)
+- `loop` (FAIL - First mismatch at branch 2)
+- `random` (FAIL - First mismatch at branch 2)
+
+### Restoration & Baseline Re-Verification
+
+Following validation, the temporary fault in [`rtl/branch_predictor_2bit.sv`](file:///e:/cpu-microarchitecture-performance-verification/rtl/branch_predictor_2bit.sv) was reverted to `assign prediction = state[1];`.
+
+Running the full baseline regression suite returned clean PASS status:
+```text
+Regression Cases = 14
+Passed           = 14
+Failed           = 0
+Overall Status   = PASS
+```
+
+### Key Verification Lesson
+
+> *A robust verification framework must prove negative-testing capability—demonstrating that it accurately rejects defective RTL—rather than serving as a passive stamp that always reports PASS.*
+
+### Interview Explanation
+
+> **Interview Question**: *"How did you validate that your verification framework could actually catch bugs?"*
+>
+> **Answer**: *"We deliberately injected an incorrect prediction-bit selection (`assign prediction = state[0];`) into the 2-bit predictor while leaving the Python golden model and regression logic unchanged. All five 2-bit workloads failed with exact event-level mismatch reports. After restoring the RTL (`assign prediction = state[1];`), the complete 14-case regression returned to PASS, proving that our co-verification infrastructure reliably catches real hardware logic bugs."*
+
+---
+
+## Interactive Platform — Verification Engine Refactor
+
+### Status: PASS
+
+### Architectural Refactoring & Validation Results
+
+To enable the interactive web platform and API integration, a reusable programmatic verification engine ([`scripts/verification_engine.py`](file:///e:/cpu-microarchitecture-performance-verification/scripts/verification_engine.py)) was constructed to accept arbitrary in-memory branch traces and memory address traces.
+
+- **Arbitrary Branch Workloads**: Normalizes arbitrary string (`"T T N T"`, `"1 1 0 1"`, `"T,N,T"`) and list (`["T", "N"]`, `[1, 0]`) formats into integer binary lists (`0` Not Taken, `1` Taken) with upper bounds (`MAX_CUSTOM_BRANCH_EVENTS = 5000`).
+- **Arbitrary Memory Workloads**: Normalizes hex (`"0x100"`, `"0x104"`) and decimal (`"256, 260"`) inputs into integer addresses (`0 <= address <= 65535`) supporting unaligned byte offsets (`MAX_CUSTOM_MEMORY_EVENTS = 5000`).
+- **Per-Request Temporary Isolation**: Writes normalized traces into per-execution temporary directories (`tempfile.TemporaryDirectory()`), compiles RTL, executes `vvp` simulations with `+WORKLOAD=<path>`, parses `REG_BRANCH`/`REG_CACHE` output, and compares event-by-event against Python golden reference models (`OneBitBranchPredictor`, `TwoBitBranchPredictor`, `DirectMappedCache`).
+- **Dual-Predictor Comparison**: `compare_branch_predictors(trace)` runs the exact same normalized branch trace through both 1-bit and 2-bit SystemVerilog RTL modules to measure accuracy delta.
+- **Hardware Cache Parameters**: Explicitly fixed to RTL hardware specifications (4 cache lines, 4-byte block size, 16-bit address space).
+
+### Verified Execution Results
+
+```text
+1-bit custom branch ("T T T T N T T T N T"):
+10 events
+6 correct
+4 incorrect
+60.0% accuracy
+RTL/golden PASS
+
+2-bit custom branch ("T T T T N T T T N T"):
+10 events
+8 correct
+2 incorrect
+80.0% accuracy
+RTL/golden PASS
+
+custom cache ("0, 0, 4, 4, 16, 0, 0"):
+7 accesses
+3 hits
+4 misses
+42.86% hit rate
+RTL/golden PASS
+```
+
